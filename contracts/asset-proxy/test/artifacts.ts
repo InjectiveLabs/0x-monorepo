@@ -44,6 +44,7 @@ import * as TestEth2DaiBridge from '../test/generated-artifacts/TestEth2DaiBridg
 import * as TestKyberBridge from '../test/generated-artifacts/TestKyberBridge.json';
 import * as TestStaticCallTarget from '../test/generated-artifacts/TestStaticCallTarget.json';
 import * as TestUniswapBridge from '../test/generated-artifacts/TestUniswapBridge.json';
+import * as TestUniswapV2Bridge from '../test/generated-artifacts/TestUniswapV2Bridge.json';
 import * as UniswapBridge from '../test/generated-artifacts/UniswapBridge.json';
 import * as UniswapV2Bridge from '../test/generated-artifacts/UniswapV2Bridge.json';
 export const artifacts = {
@@ -88,4 +89,5 @@ export const artifacts = {
     TestKyberBridge: TestKyberBridge as ContractArtifact,
     TestStaticCallTarget: TestStaticCallTarget as ContractArtifact,
     TestUniswapBridge: TestUniswapBridge as ContractArtifact,
+    TestUniswapV2Bridge: TestUniswapV2Bridge as ContractArtifact,
 };

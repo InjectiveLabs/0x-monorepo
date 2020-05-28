@@ -345,27 +345,6 @@ contract ERC20BridgeSampler is
         }
     }
 
-    // from https://uniswap.org/docs/v2/technical-considerations/pair-addresses/#create2
-    function _getUniswapV2Pair(
-        address takerToken,
-        address makerToken
-    )
-        private
-        pure
-        returns (IUniswapV2Pair pair)
-    {
-        address factory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f; // fixme(xianny): change into a param
-
-        address addr = address(uint(keccak256(abi.encodePacked(
-        hex'ff',
-        factory,
-        keccak256(abi.encodePacked(takerToken, makerToken)),
-        hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
-        ))));
-
-        pair = IUniswapV2Pair(addr);
-    }
-
     /// @dev Sample sell quotes from Uniswap V2.
     /// @param takerToken Address of the taker token (what to sell).
     /// @param makerToken Address of the maker token (what to buy).
@@ -753,6 +732,27 @@ contract ERC20BridgeSampler is
         returns (uint8 decimals)
     {
         return LibERC20Token.decimals(tokenAddress);
+    }
+
+    // from https://uniswap.org/docs/v2/technical-considerations/pair-addresses/#create2
+    function _getUniswapV2Pair(
+        address takerToken,
+        address makerToken
+    )
+        private
+        pure
+        returns (IUniswapV2Pair pair)
+    {
+        address factory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f; // fixme(xianny): change into a param
+
+        address addr = address(uint(keccak256(abi.encodePacked(
+        hex'ff',
+        factory,
+        keccak256(abi.encodePacked(takerToken, makerToken)),
+        hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
+        ))));
+
+        pair = IUniswapV2Pair(addr);
     }
 
     /// @dev Gracefully calls a Uniswap pricing function.

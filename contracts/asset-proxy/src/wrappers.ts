@@ -42,5 +42,6 @@ export * from '../generated-wrappers/test_eth2_dai_bridge';
 export * from '../generated-wrappers/test_kyber_bridge';
 export * from '../generated-wrappers/test_static_call_target';
 export * from '../generated-wrappers/test_uniswap_bridge';
+export * from '../generated-wrappers/test_uniswap_v2_bridge';
 export * from '../generated-wrappers/uniswap_bridge';
 export * from '../generated-wrappers/uniswap_v2_bridge';

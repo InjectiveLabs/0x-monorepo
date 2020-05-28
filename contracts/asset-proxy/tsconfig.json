@@ -42,6 +42,7 @@
         "generated-artifacts/TestKyberBridge.json",
         "generated-artifacts/TestStaticCallTarget.json",
         "generated-artifacts/TestUniswapBridge.json",
+        "generated-artifacts/TestUniswapV2Bridge.json",
         "generated-artifacts/UniswapBridge.json",
         "generated-artifacts/UniswapV2Bridge.json",
         "test/generated-artifacts/ChaiBridge.json",
@@ -83,6 +84,7 @@
         "test/generated-artifacts/TestKyberBridge.json",
         "test/generated-artifacts/TestStaticCallTarget.json",
         "test/generated-artifacts/TestUniswapBridge.json",
+        "test/generated-artifacts/TestUniswapV2Bridge.json",
         "test/generated-artifacts/UniswapBridge.json",
         "test/generated-artifacts/UniswapV2Bridge.json"
     ],

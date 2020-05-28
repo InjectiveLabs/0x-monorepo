@@ -36,8 +36,12 @@ contract UniswapV2Bridge is
     DeploymentConstants
 {
 
-    address private constant UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a;
-
+    struct TransferState {
+        address fromTokenAddress;
+        uint256 fromTokenBalance;
+        uint256 boughtAmount;
+    }
+    
     /// @dev Callback for `IERC20Bridge`. Tries to buy `amount` of
     ///      `toTokenAddress` tokens by selling the entirety of the `fromTokenAddress`
     ///      token encoded in the bridge data.
@@ -57,33 +61,39 @@ contract UniswapV2Bridge is
         external
         returns (bytes4 success)
     {
+        // hold variables to get around stack depth limitations
+        TransferState memory state;
 
         // Decode the bridge data to get the `fromTokenAddress`.
-        (address fromTokenAddress) = abi.decode(bridgeData, (address));
+        (state.fromTokenAddress) = abi.decode(bridgeData, (address));
 
         // Just transfer the tokens if they're the same.
-        if (fromTokenAddress == toTokenAddress) {
-            LibERC20Token.transfer(fromTokenAddress, to, amount);
+        if (state.fromTokenAddress == toTokenAddress) {
+            LibERC20Token.transfer(state.fromTokenAddress, to, amount);
             return BRIDGE_SUCCESS;
         }
 
         // Get our balance of `fromTokenAddress` token.
-        uint256 fromTokenBalance = IERC20Token(fromTokenAddress).balanceOf(address(this));
+        state.fromTokenBalance = IERC20Token(state.fromTokenAddress).balanceOf(address(this));
 
         // Grant the Uniswap router an allowance.
-        // TODO
+        LibERC20Token.approveIfBelow(
+            state.fromTokenAddress,
+            _getUniswapV2Router01Address(),
+            state.fromTokenBalance
+        );
 
-        // Construct the path argument to convert fromTokenAddress to toTokenAddress
+        // Convert directly from fromTokenAddress to toTokenAddress
         address[] memory path;
-        path[0] = fromTokenAddress;
+        path[0] = state.fromTokenAddress;
         path[1] = toTokenAddress;
 
         // Buy as much `toTokenAddress` token with `fromTokenAddress` token
         // and transfer it to `to`.
-        IUniswapV2Router01 router = IUniswapV2Router01(UNISWAP_V2_ROUTER_01_ADDRESS);
+        IUniswapV2Router01 router = IUniswapV2Router01(_getUniswapV2Router01Address());
         uint[] memory amounts = router.swapExactTokensForTokens(
              // Sell all tokens we hold.
-            fromTokenBalance,
+            state.fromTokenBalance,
              // Minimum buy amount.
             amount,
             // Convert `fromTokenAddress` to `toTokenAddress`.
@@ -94,16 +104,30 @@ contract UniswapV2Bridge is
             block.timestamp
         );
 
-        uint256 boughtAmount = amounts[1];
+        state.boughtAmount = amounts[1];
 
         emit ERC20BridgeTransfer(
-            fromTokenAddress,
+            state.fromTokenAddress,
             toTokenAddress,
-            fromTokenBalance,
-            boughtAmount,
+            state.fromTokenBalance,
+            state.boughtAmount,
             from,
             to
         );
         return BRIDGE_SUCCESS;
+    }
+
+    /// @dev `SignatureType.Wallet` callback, so that this bridge can be the maker
+    ///      and sign for itself in orders. Always succeeds.
+    /// @return magicValue Success bytes, always.
+    function isValidSignature(
+        bytes32,
+        bytes calldata
+    )
+        external
+        view
+        returns (bytes4 magicValue)
+    {
+        return LEGACY_WALLET_MAGIC_VALUE;
     }
 }

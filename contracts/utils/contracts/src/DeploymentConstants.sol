@@ -35,7 +35,7 @@ contract DeploymentConstants {
     /// @dev Mainnet address of the `UniswapV2Router01` contract.
     address constant private UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a;
     // /// @dev Kovan address of the `UniswapV2Router01` contract.
-    // address constant private UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a; // FIXME (xianny): https://uniswap.org/docs/v2/smart-contracts/router/
+    // address constant private UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a;
     /// @dev Mainnet address of the Eth2Dai `MatchingMarket` contract.
     address constant private ETH2DAI_ADDRESS = 0x794e6e91555438aFc3ccF1c5076A74F42133d08D;
     // /// @dev Kovan address of the Eth2Dai `MatchingMarket` contract.
@@ -95,6 +95,14 @@ contract DeploymentConstants {
         returns (address uniswapAddress)
     {
         return UNISWAP_EXCHANGE_FACTORY_ADDRESS;
+    }
+
+    function _getUniswapV2Router01Address()
+        internal
+        view
+        returns (address uniswapV2Address)
+    {
+        return UNISWAP_V2_ROUTER_01_ADDRESS;
     }
 
     /// @dev An overridable way to retrieve the Eth2Dai `MatchingMarket` contract.
