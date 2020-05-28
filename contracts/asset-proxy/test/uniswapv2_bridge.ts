@@ -85,7 +85,6 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
             );
             _opts.fromTokenAddress = await createFromTokenFn.callAsync(callData);
             await createFromTokenFn.awaitTransactionSuccessAsync(callData);
-            console.log(`created fromtoken ${_opts.fromTokenAddress}`);
 
             // Create the "to" token and exchange.
             const createToTokenFn = testContract.createToken(
@@ -93,7 +92,6 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
             );
             _opts.toTokenAddress = await createToTokenFn.callAsync(callData);
             await createToTokenFn.awaitTransactionSuccessAsync(callData);
-            console.log(`created totoken ${_opts.toTokenAddress}`);
 
              // Set the token balance for the token we're converting from.
             await testContract.setTokenBalance(_opts.fromTokenAddress).awaitTransactionSuccessAsync({
@@ -129,14 +127,14 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
 
         it('just transfers tokens to `to` if the same tokens are in play', async () => {
             const { opts, result, logs } = await withdrawToAsync();
-            expect(result).to.eq(AssetProxyId.ERC20Bridge);
+            expect(result).to.eq(AssetProxyId.ERC20Bridge, 'asset proxy id');
             const transfers = filterLogsToArguments<UniswapV2BridgeERC20BridgeTransferEventArgs>(logs, UniswapV2BridgeEvents.ERC20BridgeTransfer);
             expect(transfers.length).to.eq(1);
-            expect(transfers[0].inputToken).to.eq(opts.fromTokenAddress);
-            expect(transfers[0].outputToken).to.eq(opts.toTokenAddress);
-            expect(transfers[0].from).to.eq(testContract.address);
-            expect(transfers[0].to).to.eq(opts.toAddress);
-            expect(transfers[0].inputTokenAmount).to.bignumber.eq(opts.amount);
+            expect(transfers[0].inputToken).to.eq(opts.fromTokenAddress, 'input token address');
+            expect(transfers[0].outputToken).to.eq(opts.toTokenAddress, 'output token address');
+            expect(transfers[0].to).to.eq(opts.toAddress, 'recipient address');
+            expect(transfers[0].inputTokenAmount).to.bignumber.eq(opts.fromTokenBalance, 'input token amount');
+            expect(transfers[0].outputTokenAmount).to.bignumber.eq(opts.amount, 'output token amount');
         });
     });
 });

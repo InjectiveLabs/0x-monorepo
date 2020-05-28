@@ -21,11 +21,18 @@ pragma experimental ABIEncoderV2;
 
 import "@0x/contracts-erc20/contracts/src/interfaces/IERC20Token.sol";
 import "@0x/contracts-utils/contracts/src/LibSafeMath.sol";
+import "@0x/contracts-utils/contracts/src/LibAddressArray.sol";
 import "../src/bridges/UniswapV2Bridge.sol";
 import "../src/interfaces/IUniswapV2Router01.sol";
 
 
-contract TestEventsRaiser {
+/// @dev A minimalist ERC20/WETH token.
+contract TestToken {
+
+    using LibSafeMath for uint256;
+
+    mapping (address => uint256) public balances;
+    string private _nextRevertReason;
 
     event TokenTransfer(
         address token,
@@ -38,66 +45,6 @@ contract TestEventsRaiser {
         address spender,
         uint256 allowance
     );
-
-    event TokenToTokenTransferInput(
-        address exchange,
-        uint256 tokensSold,
-        uint256 minTokensBought,
-        uint256 deadline,
-        address recipient,
-        address toTokenAddress
-    );
-
-    function raiseTokenToTokenTransferInput(
-        uint256 tokensSold,
-        uint256 minTokensBought,
-        uint256 deadline,
-        address recipient,
-        address toTokenAddress
-    )
-        external
-    {
-        emit TokenToTokenTransferInput(
-            msg.sender,
-            tokensSold,
-            minTokensBought,
-            deadline,
-            recipient,
-            toTokenAddress
-        );
-    }
-
-    function raiseTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    )
-        external
-    {
-        emit TokenTransfer(
-            msg.sender,
-            from,
-            to,
-            amount
-        );
-    }
-
-    function raiseTokenApprove(address spender, uint256 allowance)
-        external
-    {
-        emit TokenApprove(spender, allowance);
-    }
-
-}
-
-
-/// @dev A minimalist ERC20/WETH token.
-contract TestToken {
-
-    using LibSafeMath for uint256;
-
-    mapping (address => uint256) public balances;
-    string private _nextRevertReason;
 
     /// @dev Set the balance for `owner`.
     function setBalance(address owner)
@@ -115,27 +62,23 @@ contract TestToken {
         _nextRevertReason = reason;
     }
 
-    /// @dev Just calls `raiseTokenTransfer()` on the caller.
+    /// @dev Just emits a TokenTransfer event on the caller
     function transfer(address to, uint256 amount)
         external
         returns (bool)
     {
         _revertIfReasonExists();
-        TestEventsRaiser(msg.sender).raiseTokenTransfer(msg.sender, to, amount);
+        emit TokenTransfer(msg.sender, msg.sender, to, amount);
         return true;
     }
 
-    /// @dev Just calls `raiseTokenApprove()` on the caller.
+    /// @dev Just emits a TokenApprove event on the caller
     function approve(address spender, uint256 allowance)
         external
         returns (bool)
     {
-        TestEventsRaiser(msg.sender).raiseTokenApprove(spender, allowance);
+        emit TokenApprove(spender, allowance);
         return true;
-    }
-
-    function allowance(address, address) external view returns (uint256) {
-        return 0;
     }
 
     /// @dev `IWETH.deposit()` that increases balances and calls
@@ -158,6 +101,10 @@ contract TestToken {
         balances[msg.sender] = balances[msg.sender].safeSub(amount);
         msg.sender.transfer(amount);
         // TestEventsRaiser(msg.sender).raiseWethWithdraw(amount);
+    }
+
+    function allowance(address, address) external view returns (uint256) {
+        return 0;
     }
 
     /// @dev Retrieve the balance for `owner`.
@@ -183,6 +130,16 @@ contract TestToken {
 contract TestRouter is
     IUniswapV2Router01
 {
+
+    event TokenToTokenTransferInput(
+        address exchange,
+        uint256 tokensSold,
+        uint256 minTokensBought,
+        uint256 deadline,
+        address recipient,
+        address toTokenAddress
+    );
+
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
@@ -191,24 +148,29 @@ contract TestRouter is
         uint deadline
     ) external returns (uint[] memory amounts)
     {
+        amounts = new uint[](2);
         amounts[0] = amountIn;
         // amounts[1] = address(this).balance;
         amounts[1] = amountOutMin;
-        TestEventsRaiser(msg.sender).raiseTokenToTokenTransferInput(
+
+        emit TokenToTokenTransferInput(
+            msg.sender,
             // tokens sold
             amountIn,
-            // min tokens bought
+            // tokens bought
             amountOutMin,
-            // expiry
+            // deadline
             deadline,
             // recipient
             to,
-            // toTokenAddress
+            // output token (toTokenAddress)
             path[1]
         );
     }
 
 }
+
+
 /// @dev UniswapV2Bridge overridden to mock tokens and Uniswap router
 contract TestUniswapV2Bridge is
     UniswapV2Bridge
