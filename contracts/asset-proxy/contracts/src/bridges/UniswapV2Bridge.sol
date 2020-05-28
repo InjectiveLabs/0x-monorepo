@@ -41,7 +41,7 @@ contract UniswapV2Bridge is
         uint256 fromTokenBalance;
         uint256 boughtAmount;
     }
-    
+
     /// @dev Callback for `IERC20Bridge`. Tries to buy `amount` of
     ///      `toTokenAddress` tokens by selling the entirety of the `fromTokenAddress`
     ///      token encoded in the bridge data.
@@ -66,6 +66,7 @@ contract UniswapV2Bridge is
 
         // Decode the bridge data to get the `fromTokenAddress`.
         (state.fromTokenAddress) = abi.decode(bridgeData, (address));
+        require(state.fromTokenAddress != address(0), 'non zero address');
 
         // Just transfer the tokens if they're the same.
         if (state.fromTokenAddress == toTokenAddress) {
@@ -76,21 +77,27 @@ contract UniswapV2Bridge is
         // Get our balance of `fromTokenAddress` token.
         state.fromTokenBalance = IERC20Token(state.fromTokenAddress).balanceOf(address(this));
 
+        require(state.fromTokenBalance > 0, 'balance is zero');
+
         // Grant the Uniswap router an allowance.
         LibERC20Token.approveIfBelow(
             state.fromTokenAddress,
             _getUniswapV2Router01Address(),
             state.fromTokenBalance
         );
+        revert('wtf4');
 
         // Convert directly from fromTokenAddress to toTokenAddress
         address[] memory path;
         path[0] = state.fromTokenAddress;
+        revert('wtf5');
         path[1] = toTokenAddress;
+        revert('wtf6');
 
         // Buy as much `toTokenAddress` token with `fromTokenAddress` token
         // and transfer it to `to`.
         IUniswapV2Router01 router = IUniswapV2Router01(_getUniswapV2Router01Address());
+        revert('wtf7');
         uint[] memory amounts = router.swapExactTokensForTokens(
              // Sell all tokens we hold.
             state.fromTokenBalance,
@@ -103,8 +110,11 @@ contract UniswapV2Bridge is
             // Expires after this block.
             block.timestamp
         );
+        revert('wtf8');
 
         state.boughtAmount = amounts[1];
+
+        revert('wtf9');
 
         emit ERC20BridgeTransfer(
             state.fromTokenAddress,

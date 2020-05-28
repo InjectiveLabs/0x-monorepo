@@ -138,6 +138,28 @@ contract TestToken {
         return 0;
     }
 
+    /// @dev `IWETH.deposit()` that increases balances and calls
+    ///     `raiseWethDeposit()` on the caller.
+    function deposit()
+        external
+        payable
+    {
+        _revertIfReasonExists();
+        balances[msg.sender] += balances[msg.sender].safeAdd(msg.value);
+        // TestEventsRaiser(msg.sender).raiseWethDeposit(msg.value);
+    }
+
+    /// @dev `IWETH.withdraw()` that just reduces balances and calls
+    ///       `raiseWethWithdraw()` on the caller.
+    function withdraw(uint256 amount)
+        external
+    {
+        _revertIfReasonExists();
+        balances[msg.sender] = balances[msg.sender].safeSub(amount);
+        msg.sender.transfer(amount);
+        // TestEventsRaiser(msg.sender).raiseWethWithdraw(amount);
+    }
+
     /// @dev Retrieve the balance for `owner`.
     function balanceOf(address owner)
         external
@@ -158,24 +180,59 @@ contract TestToken {
 }
 
 
-/// @dev UniswapV2Bridge overridden to mock tokens and implement IUniswapV2Router01
-contract TestUniswapV2Bridge is
-    UniswapV2Bridge,
+contract TestRouter is
     IUniswapV2Router01
+{
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts)
+    {
+        amounts[0] = amountIn;
+        // amounts[1] = address(this).balance;
+        amounts[1] = amountOutMin;
+        TestEventsRaiser(msg.sender).raiseTokenToTokenTransferInput(
+            // tokens sold
+            amountIn,
+            // min tokens bought
+            amountOutMin,
+            // expiry
+            deadline,
+            // recipient
+            to,
+            // toTokenAddress
+            path[1]
+        );
+    }
+
+}
+/// @dev UniswapV2Bridge overridden to mock tokens and Uniswap router
+contract TestUniswapV2Bridge is
+    UniswapV2Bridge
 {
 
     // Token address to TestToken instance.
     mapping (address => TestToken) private _testTokens;
+    // TestRouter instance.
+    TestRouter private _testRouter;
 
-    // /// @dev Sets the balance of this contract for an existing token.
-    // ///      The wei attached will be the balance.
-    // function setTokenBalance(address tokenAddress)
-    //     external
-    //     payable
-    // {
-    //     TestToken token = _testTokens[tokenAddress];
-    //     token.deposit.value(msg.value)();
-    // }
+    constructor() public {
+        _testRouter = new TestRouter();
+    }
+
+    /// @dev Sets the balance of this contract for an existing token.
+    ///      The wei attached will be the balance.
+    function setTokenBalance(address tokenAddress)
+        external
+        payable
+    {
+        TestToken token = _testTokens[tokenAddress];
+        token.deposit.value(msg.value)();
+    }
+
     /// @dev Sets the revert reason for an existing token.
     function setTokenRevertReason(address tokenAddress, string calldata revertReason)
         external
@@ -202,37 +259,11 @@ contract TestUniswapV2Bridge is
         return token;
     }
 
-    function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external returns (uint[] memory amounts)
-    {
-        amounts[0] = amountIn;
-        amounts[1] = address(this).balance;
-        // amounts[1] = amountOutMin;
-        TestEventsRaiser(msg.sender).raiseTokenToTokenTransferInput(
-            // tokens sold
-            amountIn,
-            // min tokens bought
-            amountOutMin,
-            // expiry
-            deadline,
-            // recipient
-            to,
-            // toTokenAddress
-            path[1]
-        );
-    }
-
-    /// @dev This contract will double as the Uniswap contract.
     function _getUniswapV2Router01Address()
         internal
         view
         returns (address)
     {
-        return address(this);
+        return address(_testRouter);
     }
 }

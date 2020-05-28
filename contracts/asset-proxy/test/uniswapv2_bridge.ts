@@ -43,8 +43,6 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
     });
 
     describe('bridgeTransferFrom()', () => {
-        const fromTokenAddress: string = constants.NULL_ADDRESS;
-        const toTokenAddress: string = constants.NULL_ADDRESS;
 
         interface TransferFromOpts {
             toTokenAddress: string;
@@ -67,14 +65,15 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
         function createTransferFromOpts(opts?: Partial<TransferFromOpts>): TransferFromOpts {
             const amount = getRandomInteger(1, TO_TOKEN_BASE.times(100));
             return {
-                fromTokenAddress,
-                toTokenAddress,
+                fromTokenAddress: constants.NULL_ADDRESS,
+                toTokenAddress: constants.NULL_ADDRESS,
                 amount,
                 toAddress: randomAddress(),
                 fillAmount: getRandomPortion(amount),
                 fromTokenBalance: getRandomInteger(1, FROM_TOKEN_BASE.times(100)),
                 ...opts,
             };
+
         }
 
         async function withdrawToAsync(opts?: Partial<TransferFromOpts>): Promise<TransferFromResult> {
@@ -84,15 +83,22 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
             const createFromTokenFn = testContract.createToken(
                 _opts.fromTokenAddress,
             );
-            [_opts.fromTokenAddress] = await createFromTokenFn.callAsync(callData);
+            _opts.fromTokenAddress = await createFromTokenFn.callAsync(callData);
             await createFromTokenFn.awaitTransactionSuccessAsync(callData);
+            console.log(`created fromtoken ${_opts.fromTokenAddress}`);
 
             // Create the "to" token and exchange.
             const createToTokenFn = testContract.createToken(
                 _opts.toTokenAddress,
             );
-            [_opts.toTokenAddress] = await createToTokenFn.callAsync(callData);
+            _opts.toTokenAddress = await createToTokenFn.callAsync(callData);
             await createToTokenFn.awaitTransactionSuccessAsync(callData);
+            console.log(`created totoken ${_opts.toTokenAddress}`);
+
+             // Set the token balance for the token we're converting from.
+            await testContract.setTokenBalance(_opts.fromTokenAddress).awaitTransactionSuccessAsync({
+                value: new BigNumber(_opts.fromTokenBalance),
+            });
 
             // Call bridgeTransferFrom().
             const bridgeTransferFromFn = testContract.bridgeTransferFrom(
@@ -122,15 +128,12 @@ blockchainTests.resets.only('UniswapV2 unit tests', env => {
         });
 
         it('just transfers tokens to `to` if the same tokens are in play', async () => {
-            const { opts, result, logs } = await withdrawToAsync({
-                fromTokenAddress,
-                toTokenAddress,
-            });
+            const { opts, result, logs } = await withdrawToAsync();
             expect(result).to.eq(AssetProxyId.ERC20Bridge);
             const transfers = filterLogsToArguments<UniswapV2BridgeERC20BridgeTransferEventArgs>(logs, UniswapV2BridgeEvents.ERC20BridgeTransfer);
             expect(transfers.length).to.eq(1);
-            expect(transfers[0].inputToken).to.eq(fromTokenAddress);
-            expect(transfers[0].outputToken).to.eq(toTokenAddress);
+            expect(transfers[0].inputToken).to.eq(opts.fromTokenAddress);
+            expect(transfers[0].outputToken).to.eq(opts.toTokenAddress);
             expect(transfers[0].from).to.eq(testContract.address);
             expect(transfers[0].to).to.eq(opts.toAddress);
             expect(transfers[0].inputTokenAmount).to.bignumber.eq(opts.amount);
